@@ -8,6 +8,7 @@ import { connectToDatabase } from "./config/db";
 import { authMiddleware } from "./middleware/auth";
 import authRouter from "./routes/auth";
 import documentsRouter from "./routes/documents";
+import foldersRouter from "./routes/folders";
 import remindersRouter from "./routes/reminders";
 import reportsRouter from "./routes/reports";
 import shareRouter from "./routes/share";
@@ -26,6 +27,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/documents", authMiddleware, documentsRouter);
+app.use("/api/folders", authMiddleware, foldersRouter);
 app.use("/api/reminders", authMiddleware, remindersRouter);
 app.use("/api/reports", authMiddleware, reportsRouter);
 app.use("/api/templates", authMiddleware, templatesRouter);

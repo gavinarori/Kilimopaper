@@ -18,22 +18,39 @@ const upload = multer({ storage });
 
 router.get("/", async (req, res) => {
   const userId = (req as any).userId as string;
-  const list = await DocumentModel.find({ ownerId: userId }).sort({ createdAt: -1 }).lean();
+  const folderId = req.query.folderId as string;
+  const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+  
+  const query: any = { ownerId: userId };
+  if (folderId) {
+    query.folderId = folderId;
+  }
+  
+  let queryBuilder = DocumentModel.find(query).sort({ createdAt: -1 });
+  if (limit) {
+    queryBuilder = queryBuilder.limit(limit);
+  }
+  
+  const list = await queryBuilder.lean();
   res.json(list);
 });
 
-router.post("/", upload.single("file"), async (req, res) => {
+// Upload endpoint
+router.post("/upload", upload.single("file"), async (req, res) => {
   const userId = (req as any).userId as string;
   if (!req.file) return res.status(400).json({ error: "Missing file" });
-  const metaSchema = z.object({ category: z.string(), product: z.string() });
-  const parse = metaSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ error: parse.error.issues });
+  
+  const folderId = req.body.folderId;
+  
   const created = await DocumentModel.create({
     ownerId: userId,
     filename: req.file.filename,
     originalName: req.file.originalname,
-    category: parse.data.category,
-    product: parse.data.product,
+    name: req.file.originalname,
+    size: req.file.size,
+    type: req.file.mimetype,
+    folderId: folderId || null,
+    uploadedBy: userId,
     uploadedAt: new Date(),
   });
   res.status(201).json(created);

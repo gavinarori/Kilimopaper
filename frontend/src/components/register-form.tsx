@@ -10,20 +10,22 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/lib/auth"
 import { apiFetch } from "@/lib/api"
 
-interface LoginFormData {
+interface RegisterFormData {
   email: string
   password: string
+  confirmPassword: string
 }
 
-export function LoginForm({
+export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
   const router = useRouter()
   const { setToken } = useAuth()
-  const [formData, setFormData] = useState<LoginFormData>({
+  const [formData, setFormData] = useState<RegisterFormData>({
     email: "",
     password: "",
+    confirmPassword: "",
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -31,10 +33,25 @@ export function LoginForm({
     e.preventDefault()
     setIsLoading(true)
 
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match")
+      setIsLoading(false)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters long")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const result = await apiFetch<{ token: string }>("/api/auth/login", {
+      const result = await apiFetch<{ token: string }>("/api/auth/register", {
         method: "POST",
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       })
 
       if (result.error) {
@@ -44,11 +61,11 @@ export function LoginForm({
 
       if (result.data?.token) {
         setToken(result.data.token)
-        toast.success("Login successful!")
+        toast.success("Registration successful!")
         router.push("/dashboard")
       }
     } catch (error) {
-      toast.error("Login failed. Please try again.")
+      toast.error("Registration failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -64,9 +81,9 @@ export function LoginForm({
   return (
     <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Login to your account</h1>
+        <h1 className="text-2xl font-bold">Create your account</h1>
         <p className="text-muted-foreground text-sm text-balance">
-          Enter your email below to login to your account
+          Enter your details below to create your account
         </p>
       </div>
       <div className="grid gap-6">
@@ -84,27 +101,33 @@ export function LoginForm({
           />
         </div>
         <div className="grid gap-3">
-          <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
-            <a
-              href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
-            >
-              Forgot your password?
-            </a>
-          </div>
+          <Label htmlFor="password">Password</Label>
           <Input 
             id="password" 
             name="password"
             type="password" 
+            placeholder="Enter your password"
             required 
             value={formData.password}
             onChange={handleInputChange}
             disabled={isLoading}
           />
         </div>
+        <div className="grid gap-3">
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Input 
+            id="confirmPassword" 
+            name="confirmPassword"
+            type="password" 
+            placeholder="Confirm your password"
+            required 
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            disabled={isLoading}
+          />
+        </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading ? "Creating account..." : "Create account"}
         </Button>
         <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
           <span className="bg-background text-muted-foreground relative z-10 px-2">
@@ -118,13 +141,13 @@ export function LoginForm({
               fill="currentColor"
             />
           </svg>
-          Login with GitHub
+          Sign up with GitHub
         </Button>
       </div>
       <div className="text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <a href="/register" className="underline underline-offset-4">
-          Sign up
+        Already have an account?{" "}
+        <a href="/login" className="underline underline-offset-4">
+          Sign in
         </a>
       </div>
     </form>

@@ -3,8 +3,8 @@
 export type ApiResult<T> = { data?: T; error?: string }
 
 export function getApiBase(): string {
-  if (typeof window === "undefined") return process.env.NEXT_PUBLIC_API_BASE || ""
-  return process.env.NEXT_PUBLIC_API_BASE || ""
+  if (typeof window === "undefined") return process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000"
+  return process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000"
 }
 
 export function getToken(): string | null {
