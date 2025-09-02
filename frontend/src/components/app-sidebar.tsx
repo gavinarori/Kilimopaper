@@ -1,9 +1,19 @@
-import * as React from "react"
-import { Plus } from "lucide-react"
+"use client";
 
-import { Calendars } from "@/components/calendars"
-import { DatePicker } from "@/components/date-picker"
-import { NavUser } from "@/components/nav-user"
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { 
+  Calendar, 
+  Bell, 
+  File, 
+  CreditCard, 
+  Plus, 
+  LogOut 
+} from "lucide-react";
+import { useAuth } from "@/lib/auth";
+
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -12,55 +22,78 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarSeparator,
-} from "@/components/ui/sidebar"
-
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  calendars: [
-    {
-      name: "My Calendars",
-      items: ["Personal", "Work", "Family"],
-    },
-    {
-      name: "Favorites",
-      items: ["Holidays", "Birthdays"],
-    },
-    {
-      name: "Other",
-      items: ["Travel", "Reminders", "Deadlines"],
-    },
-  ],
-}
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, logout } = useAuth()
+  const pathname = usePathname()
+
+  const userData = {
+    name: user?.email?.split('@')[0] || "User",
+    email: user?.email || "user@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  }
+
   return (
     <Sidebar {...props}>
       <SidebarHeader className="border-sidebar-border h-16 border-b">
-        <NavUser user={data.user} />
+        <div className="flex items-center gap-2 px-2">
+          <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
+            <Calendar className="size-4" />
+          </div>
+          <span className="font-semibold">Agri-Export</span>
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <DatePicker />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <Link href="/dashboard" className="w-full">
+              <SidebarMenuButton className={pathname === "/dashboard" ? "bg-accent" : ""}>
+                <Calendar className="h-4 w-4" />
+                <span>Dashboard</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/documents" className="w-full">
+              <SidebarMenuButton className={pathname === "/documents" ? "bg-accent" : ""}>
+                <File className="h-4 w-4" />
+                <span>Documents</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/reminders" className="w-full">
+              <SidebarMenuButton className={pathname === "/reminders" ? "bg-accent" : ""}>
+                <Bell className="h-4 w-4" />
+                <span>Reminders</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/payments" className="w-full">
+              <SidebarMenuButton className={pathname === "/payments" ? "bg-accent" : ""}>
+                <CreditCard className="h-4 w-4" />
+                <span>Payments</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <Plus />
-              <span>New Calendar</span>
+            <SidebarMenuButton onClick={logout}>
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <NavUser user={userData} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
-  )
+  );
 }
