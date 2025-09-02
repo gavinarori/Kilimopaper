@@ -35,6 +35,7 @@ interface Document {
   uploadedBy: string
   uploadedAt: string
   updatedAt: string
+  filename: string
 }
 
 interface Folder {
@@ -328,7 +329,22 @@ export default function DocumentsPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl">{getFileIcon(document.type)}</span>
+                          {/* Preview thumbnail */}
+                          {document.type.startsWith("image/") ? (
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000"}/uploads/${document.filename}`}
+                              alt={document.originalName}
+                              className="h-10 w-10 rounded object-cover border"
+                            />
+                          ) : document.type === "application/pdf" ? (
+                            <embed
+                              src={`${process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000"}/uploads/${document.filename}#toolbar=0&navpanes=0&scrollbar=0`}
+                              type="application/pdf"
+                              className="h-10 w-10 border rounded object-cover"
+                            />
+                          ) : (
+                            <span className="text-2xl">{getFileIcon(document.type)}</span>
+                          )}
                           <div className="min-w-0 flex-1">
                             <CardTitle className="text-sm truncate">
                               {document.originalName}
@@ -354,9 +370,18 @@ export default function DocumentsPage() {
                           <span className="truncate">{document.uploadedBy}</span>
                         </div>
                         <div className="flex gap-1 pt-2">
-                          <Button variant="ghost" size="sm" className="flex-1">
-                            <Download className="h-3 w-3 mr-1" />
-                            Download
+                          <Button asChild variant="ghost" size="sm" className="flex-1">
+                            <a href={`${process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000"}/uploads/${document.filename}`} target="_blank" rel="noopener noreferrer">
+                              <Download className="h-3 w-3 mr-1" />
+                              Preview
+                            </a>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/api/share/${document._id}`)}
+                          >
+                            <span className="text-xs">Share</span>
                           </Button>
                           <Button 
                             variant="ghost" 

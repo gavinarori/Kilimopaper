@@ -24,6 +24,9 @@ app.use(express.json({ limit: "2mb" }));
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+// Static serving for uploaded files
+app.use("/uploads", express.static(uploadsDir));
+
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/documents", authMiddleware, documentsRouter);
