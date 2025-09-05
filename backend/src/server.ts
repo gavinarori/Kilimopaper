@@ -17,7 +17,14 @@ import templatesRouter from "./routes/templates";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:3000",
+        "https://client-shopmart.vercel.app/",
+        "https://sellershopmart.vercel.app/"
+    ],
+    credentials: true
+}))
 app.use(express.json({ limit: "2mb" }));
 
 // Ensure uploads directory exists
@@ -26,6 +33,22 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // Static serving for uploaded files
 app.use("/uploads", express.static(uploadsDir));
+
+// Mock market prices endpoint
+app.get("/api/market/prices", (_req, res) => {
+  res.json({
+    updatedAt: new Date().toISOString(),
+    currencies: "USD/tonne",
+    crops: [
+      { crop: "Coffee", region: "EU", price: 4200 },
+      { crop: "Coffee", region: "Asia", price: 4050 },
+      { crop: "Tea", region: "EU", price: 1900 },
+      { crop: "Tea", region: "Asia", price: 1750 },
+      { crop: "Avocado", region: "EU", price: 2300 },
+      { crop: "Avocado", region: "Asia", price: 2100 },
+    ],
+  });
+});
 
 // Routes
 app.use("/api/auth", authRouter);

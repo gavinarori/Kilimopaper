@@ -41,12 +41,13 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "Missing file" });
   
   const folderId = req.body.folderId;
+  const providedName = (req.body.name as string | undefined)?.trim();
   
   const created = await DocumentModel.create({
     ownerId: userId,
     filename: req.file.filename,
     originalName: req.file.originalname,
-    name: req.file.originalname,
+    name: providedName && providedName.length > 0 ? providedName : req.file.originalname,
     size: req.file.size,
     type: req.file.mimetype,
     folderId: folderId || null,
@@ -54,6 +55,22 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     uploadedAt: new Date(),
   });
   res.status(201).json(created);
+});
+
+router.put("/:id", async (req, res) => {
+  const userId = (req as any).userId as string;
+  const docId = req.params.id;
+  const schema = z.object({ name: z.string().min(1).max(255).optional(), folderId: z.string().optional() });
+  const parse = schema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ error: parse.error.issues });
+
+  const updated = await DocumentModel.findOneAndUpdate(
+    { _id: docId, ownerId: userId },
+    { $set: parse.data },
+    { new: true }
+  );
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  res.json(updated);
 });
 
 router.delete("/:id", async (req, res) => {
