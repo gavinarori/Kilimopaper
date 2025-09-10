@@ -38,6 +38,7 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useRouter } from "next/navigation"
 
 interface Document {
   _id: string
@@ -62,6 +63,7 @@ interface FolderType {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter()
   const [documents, setDocuments] = useState<Document[]>([])
   const [folders, setFolders] = useState<FolderType[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -83,6 +85,7 @@ export default function DocumentsPage() {
   const [renameDoc, setRenameDoc] = useState<Document | null>(null)
   const [renameName, setRenameName] = useState("")
   const [renameFolder, setRenameFolder] = useState<string | undefined>(undefined)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -102,6 +105,16 @@ export default function DocumentsPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const createTextDoc = async () => {
+    setCreating(true)
+    const res = await apiFetch<any>("/api/documents/text", {
+      method: "POST",
+      body: JSON.stringify({ name: "Untitled Document", content: "" }),
+    })
+    setCreating(false)
+    if (res.data?._id) router.push(`/editor/${res.data._id}`)
   }
 
   const handleDrag = (e: React.DragEvent) => {
@@ -262,8 +275,8 @@ export default function DocumentsPage() {
 
   const filteredDocuments = documents.filter(
     (doc) =>
-      doc.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.type.toLowerCase().includes(searchQuery.toLowerCase()),
+      doc.originalName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.type?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   if (isLoading) {
@@ -454,6 +467,8 @@ export default function DocumentsPage() {
                   >
                     <List className="h-4 w-4" />
                   </Button>
+                  <Button size="sm" onClick={() => router.push("/templates")}>Templates</Button>
+                  <Button size="sm" onClick={createTextDoc} disabled={creating}>{creating ? "Creating..." : "New Document"}</Button>
                 </div>
               </div>
             </div>

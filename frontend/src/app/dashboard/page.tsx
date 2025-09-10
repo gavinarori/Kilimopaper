@@ -92,11 +92,11 @@ export default function DashboardPage() {
   }
 
   const getFileIcon = (type: string) => {
-    if (type.includes('pdf')) return '📄'
-    if (type.includes('image')) return '🖼️'
-    if (type.includes('word') || type.includes('document')) return '📝'
-    if (type.includes('excel') || type.includes('spreadsheet')) return '📊'
-    if (type.includes('powerpoint') || type.includes('presentation')) return '📽️'
+    if (type?.includes('pdf')) return '📄'
+    if (type?.includes('image')) return '🖼️'
+    if (type?.includes('word') || type?.includes('document')) return '📝'
+    if (type?.includes('excel') || type?.includes('spreadsheet')) return '📊'
+    if (type?.includes('powerpoint') || type?.includes('presentation')) return '📽️'
     return '📁'
   }
 
@@ -246,7 +246,7 @@ export default function DashboardPage() {
                             </p>
                           </div>
                           <Badge variant="secondary" className="text-xs">
-                            {document.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                            {document.type?.split('/')[1]?.toUpperCase() || 'FILE'}
                           </Badge>
                         </div>
                       ))}
