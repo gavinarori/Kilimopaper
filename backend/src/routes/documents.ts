@@ -45,6 +45,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   
   const created = await DocumentModel.create({
     ownerId: userId,
+    kind: "file",
     filename: req.file.filename,
     originalName: req.file.originalname,
     name: providedName && providedName.length > 0 ? providedName : req.file.originalname,
@@ -57,10 +58,40 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   res.status(201).json(created);
 });
 
+// Create new text document
+router.post("/text", async (req, res) => {
+  const userId = (req as any).userId as string;
+  const { name, content, folderId, templateId } = (req.body as any) || {};
+  if (!name || typeof name !== "string") return res.status(400).json({ error: "name is required" });
+  const created = await DocumentModel.create({
+    ownerId: userId,
+    kind: "text",
+    name,
+    content: typeof content === "string" ? content : "",
+    folderId: folderId || null,
+    uploadedBy: userId,
+    uploadedAt: new Date(),
+    templateId: templateId || null,
+  });
+  res.status(201).json(created);
+});
+
+// Fetch a single document (for text docs editing)
+router.get("/:id", async (req, res) => {
+  const userId = (req as any).userId as string;
+  const doc = await DocumentModel.findOne({ _id: req.params.id, ownerId: userId }).lean();
+  if (!doc) return res.status(404).json({ error: "Not found" });
+  res.json(doc);
+});
+
 router.put("/:id", async (req, res) => {
   const userId = (req as any).userId as string;
   const docId = req.params.id;
-  const schema = z.object({ name: z.string().min(1).max(255).optional(), folderId: z.string().optional() });
+  const schema = z.object({
+    name: z.string().min(1).max(255).optional(),
+    folderId: z.string().optional(),
+    content: z.string().optional(),
+  });
   const parse = schema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ error: parse.error.issues });
 
