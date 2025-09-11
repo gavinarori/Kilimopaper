@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -8,6 +8,12 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/api"
+import { useEditor, EditorContent } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Underline from "@tiptap/extension-underline"
+import Link from "@tiptap/extension-link"
+import TextAlign from "@tiptap/extension-text-align"
+import Placeholder from "@tiptap/extension-placeholder"
 
 export default function EditorPage() {
   const params = useParams<{ id: string }>()
@@ -20,34 +26,73 @@ export default function EditorPage() {
   const [restoredDraft, setRestoredDraft] = useState(false)
   const [lastSavedName, setLastSavedName] = useState("")
   const [lastSavedContent, setLastSavedContent] = useState("")
-  const editorRef = useRef<HTMLDivElement | null>(null)
 
   const draftKey = useMemo(() => `draft-doc-${id}`, [id])
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Underline,
+      Link.configure({ openOnClick: true }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Placeholder.configure({ placeholder: "Start typing…" }),
+    ],
+    editorProps: {
+      attributes: {
+        class: "min-h-[60vh] border rounded p-4 prose max-w-none focus:outline-none",
+      },
+    },
+    content,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      setContent(html)
+    },
+  })
 
   useEffect(() => {
     ;(async () => {
       const res = await apiFetch<any>(`/api/documents/${id}`)
       if (res.data) {
-        setName(res.data.name || "Untitled")
-        setContent(res.data.content || "")
-        setLastSavedName(res.data.name || "Untitled")
-        setLastSavedContent(res.data.content || "")
+        const serverName = res.data.name || "Untitled"
+        const serverContent = res.data.content || ""
+        setName(serverName)
+        setContent(serverContent)
+        setLastSavedName(serverName)
+        setLastSavedContent(serverContent)
+        if (editor) editor.commands.setContent(serverContent, { emitUpdate: false })
       }
       // Try restore draft if exists
       try {
         const raw = localStorage.getItem(draftKey)
         if (raw) {
           const draft = JSON.parse(raw) as { name: string; content: string; ts: number }
-          if (draft && (draft.name !== (res.data?.name || "Untitled") || draft.content !== (res.data?.content || ""))) {
+          const serverName = res.data?.name || "Untitled"
+          const serverContent = res.data?.content || ""
+          const shouldRestore = draft && (draft.name !== serverName || draft.content !== serverContent)
+          if (shouldRestore) {
             setName(draft.name)
             setContent(draft.content)
+            if (editor) editor.commands.setContent(draft.content, { emitUpdate: false })
             setRestoredDraft(true)
           }
         }
       } catch {}
       setLoaded(true)
     })()
-  }, [id, draftKey])
+  }, [id, draftKey, editor])
+
+  // When editor becomes available later, ensure it has current content
+  useEffect(() => {
+    if (!editor) return
+    // Only set if different to avoid loop
+    const html = editor.getHTML()
+    if (html !== content) {
+      editor.commands.setContent(content || "<p></p>", { emitUpdate: false })
+    }
+  }, [editor, content])
 
   // Autosave to localStorage (debounced)
   useEffect(() => {
@@ -75,29 +120,21 @@ export default function EditorPage() {
 
   const save = useCallback(async () => {
     setSaving(true)
+    const html = editor ? editor.getHTML() : content
     await apiFetch(`/api/documents/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ name, content }),
+      body: JSON.stringify({ name, content: html }),
     })
     setSaving(false)
     setLastSavedName(name)
-    setLastSavedContent(content)
+    setLastSavedContent(html)
     try { localStorage.removeItem(draftKey) } catch {}
-  }, [id, name, content])
-
-  // Formatting actions using document.execCommand for simplicity
-  const runCmd = (cmd: string, value?: string) => {
-    document.execCommand(cmd, false, value)
-    // Update state after command
-    if (editorRef.current) {
-      setContent(editorRef.current.innerHTML)
-    }
-  }
+  }, [id, name, editor, content])
 
   const addLink = () => {
     const url = prompt("Enter URL")
     if (!url) return
-    runCmd("createLink", url)
+    editor?.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
   }
 
   return (
@@ -116,39 +153,36 @@ export default function EditorPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-1 mt-3">
-              <Button size="sm" variant="outline" onClick={() => runCmd("bold")}>Bold</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("italic")}>Italic</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("underline")}>Underline</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("formatBlock", "<h1>")}>H1</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("formatBlock", "<h2>")}>H2</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("insertUnorderedList")}>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBold().run()}>Bold</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleItalic().run()}>Italic</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleUnderline().run()}>Underline</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>H1</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}>H2</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBulletList().run()}>
                 Bullets
               </Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("insertOrderedList")}>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleOrderedList().run()}>
                 Numbered
               </Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("justifyLeft")}>Left</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("justifyCenter")}>Center</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("justifyRight")}>Right</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setTextAlign("left").run()}>Left</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setTextAlign("center").run()}>Center</Button>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setTextAlign("right").run()}>Right</Button>
               <Button size="sm" variant="outline" onClick={addLink}>Link</Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("undo")}>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().undo().run()}>
                 Undo
               </Button>
-              <Button size="sm" variant="outline" onClick={() => runCmd("redo")}>
+              <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().redo().run()}>
                 Redo
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => { if (editorRef.current) { editorRef.current.innerHTML = ""; setContent("") } }}>Clear</Button>
+              <Button size="sm" variant="secondary" onClick={() => { editor?.commands.clearContent(true); setContent("") }}>Clear</Button>
             </div>
           </div>
           <div className="p-4">
-            <div
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              className="min-h-[60vh] border rounded p-4 prose max-w-none focus:outline-none"
-              onInput={(e) => setContent((e.target as HTMLDivElement).innerHTML)}
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
+            {!editor ? (
+              <div className="min-h-[60vh] border rounded p-4 text-sm text-muted-foreground">Loading editor…</div>
+            ) : (
+              <EditorContent editor={editor} />
+            )}
           </div>
         </SidebarInset>
       </SidebarProvider>
