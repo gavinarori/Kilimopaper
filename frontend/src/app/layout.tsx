@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../lib/auth";
 import { CalendarProvider } from "@/components/event-calendar/calendar-context";
+import { ThemeProvider } from "./theme-provider";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -26,10 +27,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
-        <CalendarProvider>{children}</CalendarProvider>
+        <CalendarProvider> 
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider></CalendarProvider>
           <Toaster />
         </AuthProvider>
       </body>
