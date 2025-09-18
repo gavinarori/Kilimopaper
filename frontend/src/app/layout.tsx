@@ -33,7 +33,7 @@ export default function RootLayout({
         <CalendarProvider> 
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
