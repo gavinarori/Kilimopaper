@@ -84,7 +84,7 @@ export default function EditorPage() {
     })()
   }, [id, draftKey, editor])
 
-  // When editor becomes available later, ensure it has current content
+  
   useEffect(() => {
     if (!editor) return
     // Only set if different to avoid loop
