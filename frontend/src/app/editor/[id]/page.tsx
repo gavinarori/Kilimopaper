@@ -64,7 +64,7 @@ export default function EditorPage() {
         setLastSavedContent(serverContent)
         if (editor) editor.commands.setContent(serverContent, { emitUpdate: false })
       }
-      // Try restore draft if exists
+    
       try {
         const raw = localStorage.getItem(draftKey)
         if (raw) {
