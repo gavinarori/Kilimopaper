@@ -20,8 +20,6 @@ const app = express();
 app.use(cors({
     origin: [
         "http://localhost:3000",
-        "https://client-shopmart.vercel.app/",
-        "https://sellershopmart.vercel.app/"
     ],
     credentials: true
 }))
