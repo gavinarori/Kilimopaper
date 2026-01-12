@@ -173,7 +173,7 @@ export default function RemindersPage() {
                     onEventAdd={handleEventAdd}
                     onEventUpdate={handleEventUpdate}
                     onEventDelete={handleEventDelete}
-                    initialView="week"
+                    initialView="month"
                   />
                 )}
               </CalendarProvider>
